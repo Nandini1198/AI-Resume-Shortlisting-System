@@ -1,0 +1,92 @@
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Mail;
+using System.Windows.Forms;
+
+namespace AITalentMatchWinForms
+{
+    public partial class FormSendEmail : Form
+    {
+        public FormSendEmail()
+        {
+            InitializeComponent();
+        }
+
+        private void FormSendEmail_Load(object sender, EventArgs e)
+        {
+            Lst_EmailList.Items.Clear();
+            FormResumeShortlist.ShortlistedEmails.Clear();
+
+            foreach (string file in FormResumeShortlist.ShortlistedFiles)
+            {
+                string text = ResumeReader.ReadResumeText(file);
+                List<string> emails = ResumeReader.ExtractEmails(text);
+
+                foreach (string mail in emails)
+                {
+                    if (!FormResumeShortlist.ShortlistedEmails.Contains(mail))
+                    {
+                        FormResumeShortlist.ShortlistedEmails.Add(mail);
+                        Lst_EmailList.Items.Add(mail);
+                    }
+                }
+            }
+
+            Txt_Subject.Text = "Interview Invitation";
+
+            Txt_EmailDraft.Text =
+                "Dear Candidate,\n\n" +
+                "We are pleased to inform you that your profile has been shortlisted.\n" +
+                "Our HR team will connect with you shortly.\n\n" +
+                "Regards,\nHR Team";
+        }
+
+        private void Btn_SendEmail_Click(object sender, EventArgs e)
+        {
+            if (FormResumeShortlist.ShortlistedEmails.Count == 0)
+            {
+                MessageBox.Show("No emails to send.");
+                return;
+            }
+
+            int sent = 0;
+
+            foreach (string email in FormResumeShortlist.ShortlistedEmails)
+            {
+                try
+                {
+                    SendEmail(email, Txt_Subject.Text, Txt_EmailDraft.Text);
+                    sent++;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error sending to {email}\n{ex.Message}");
+                }
+            }
+
+            MessageBox.Show($"{sent} Emails sent successfully!");
+        }
+
+        private void SendEmail(string to, string subject, string body)
+        {
+            MailMessage mail = new MailMessage();
+            mail.To.Add(to);
+            mail.From = new MailAddress("yourgmail@gmail.com");
+            mail.Subject = subject;
+            mail.Body = body;
+
+            SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587)
+            {
+                EnableSsl = true,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(
+                    "Yourgmail@gmail.com",
+                    "Your 16 digit passkey"
+                )
+            };
+
+            smtp.Send(mail);
+        }
+    }
+}
