@@ -1,0 +1,90 @@
+using DocumentFormat.OpenXml.Packaging;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace AITalentMatchWinForms
+{
+    internal class ResumeReader
+    {
+        public static string ReadResumeText(string file)
+        {
+            string ext = System.IO.Path.GetExtension(file).ToLowerInvariant();
+
+
+            try
+            {
+                if (ext == ".txt")
+                    return File.ReadAllText(file);
+
+                if (ext == ".docx")
+                    return ReadDocx(file);
+
+                if (ext == ".pdf")
+                    return ReadPdf(file);
+            }
+            catch { }
+
+            return "";
+        }
+
+        private static string ReadDocx(string file)
+        {
+            using (var doc = WordprocessingDocument.Open(file, false))
+            {
+                return doc.MainDocumentPart.Document.Body.InnerText ?? "";
+            }
+        }
+
+        private static string ReadPdf(string file)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            using (PdfReader reader = new PdfReader(file))
+            {
+                for (int i = 1; i <= reader.NumberOfPages; i++)
+                    sb.Append(PdfTextExtractor.GetTextFromPage(reader, i) + " ");
+            }
+
+            return sb.ToString();
+        }
+
+        public static int ExtractExperience(string text)
+        {
+            var m = Regex.Match(text, @"(\d+)\s*\+?\s*(year|yr|yrs)", RegexOptions.IgnoreCase);
+
+            if (m.Success && int.TryParse(m.Groups[1].Value, out int years))
+                return years;
+
+            return 0;
+        }
+
+        public static List<string> ExtractEmails(string text)
+        {
+            List<string> emails = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(text))
+                return emails;
+
+            text = text.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
+
+            MatchCollection matches = Regex.Matches(
+                text,
+                @"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in|net|org|biz|co\.in)\b",
+                RegexOptions.IgnoreCase
+            );
+
+            foreach (Match m in matches)
+            {
+                string email = m.Value.Trim();
+                if (!emails.Contains(email))
+                    emails.Add(email);
+            }
+
+            return emails;
+        }
+    }
+}
