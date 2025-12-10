@@ -1,0 +1,1 @@
+Automated Resume Shortlisting system built with C# WinForms. Supports PDF/DOCX/TXT scanning, skill matching, experience filtering, and displays shortlisted files in a clean UI. Includes email module for sending messages to selected candidates.
